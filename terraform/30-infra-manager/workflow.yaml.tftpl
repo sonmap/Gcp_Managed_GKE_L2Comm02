@@ -1,0 +1,118 @@
+main:
+  steps:
+    - init:
+        assign:
+          - project: "${edge_project_id}"
+          - location: "${region}"
+          - cluster_id: "${cluster_name}"
+          - namespace: "${namespace}"
+          - job_name: $${"l2comm-" + string(int(sys.now()))}
+
+    - ensure_namespace:
+        try:
+          call: gke.request
+          args:
+            cluster_id: $${cluster_id}
+            project: $${project}
+            location: $${location}
+            method: "POST"
+            path: "/api/v1/namespaces"
+            body:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: $${namespace}
+        except:
+          as: e
+          steps:
+            - check_namespace_exists:
+                switch:
+                  - condition: $${e.code == 409}
+                    next: ensure_ksa
+                next: raise_namespace_error
+            - raise_namespace_error:
+                raise: $${e}
+
+    - ensure_ksa:
+        try:
+          call: gke.request
+          args:
+            cluster_id: $${cluster_id}
+            project: $${project}
+            location: $${location}
+            method: "POST"
+            path: $${"/api/v1/namespaces/" + namespace + "/serviceaccounts"}
+            body:
+              apiVersion: v1
+              kind: ServiceAccount
+              metadata:
+                name: "${ksa_name}"
+                annotations:
+                  iam.gke.io/gcp-service-account: "sa-l2comm-runtime@${edge_project_id}.iam.gserviceaccount.com"
+        except:
+          as: e
+          steps:
+            - check_ksa_exists:
+                switch:
+                  - condition: $${e.code == 409}
+                    next: create_job
+                next: raise_ksa_error
+            - raise_ksa_error:
+                raise: $${e}
+
+    - create_job:
+        call: gke.create_job
+        args:
+          cluster_id: $${cluster_id}
+          project: $${project}
+          location: $${location}
+          namespace: $${namespace}
+          job:
+            apiVersion: batch/v1
+            kind: Job
+            metadata:
+              name: $${job_name}
+            spec:
+              backoffLimit: 1
+              ttlSecondsAfterFinished: 600
+              template:
+                spec:
+                  serviceAccountName: "${ksa_name}"
+                  restartPolicy: Never
+                  containers:
+                    - name: python-bq-batch
+                      image: "${image_uri}"
+                      imagePullPolicy: IfNotPresent
+                      env:
+                        - name: EXECUTION_PROJECT
+                          value: "${edge_project_id}"
+                        - name: TARGET_PROJECT
+                          value: "${target_project}"
+                        - name: TARGET_DATASET
+                          value: "${target_dataset}"
+                        - name: TARGET_TABLE
+                          value: "${target_table}"
+                      resources:
+                        requests:
+                          cpu: "250m"
+                          memory: "512Mi"
+                        limits:
+                          cpu: "250m"
+                          memory: "512Mi"
+        result: created_job
+
+    - wait_for_job:
+        call: gke.await_job
+        args:
+          cluster_id: $${cluster_id}
+          job_name: $${job_name}
+          project: $${project}
+          location: $${location}
+          namespace: $${namespace}
+          timeout: 1800
+        result: completed_job
+
+    - return_result:
+        return:
+          job_name: $${job_name}
+          status: $${completed_job.status}
