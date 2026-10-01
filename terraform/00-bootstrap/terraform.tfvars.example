@@ -1,0 +1,7 @@
+edge_project_id     = "gcp-prod-edp-edge-509423"
+host_project_id     = "gcp-prod-edp-hub-vpchost"
+data_project_id     = "pjt-c-admin"
+region              = "asia-northeast3"
+admin_user          = "admin@sonmap.net"
+vm_service_account  = "620081195575-compute@developer.gserviceaccount.com"
+tfstate_bucket_name = "gcp-prod-edp-edge-509423-l2comm-tfstate"
