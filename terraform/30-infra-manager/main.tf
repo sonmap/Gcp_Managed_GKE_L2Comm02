@@ -170,11 +170,10 @@ resource "google_container_cluster" "autopilot" {
   subnetwork = "projects/${var.host_project_id}/regions/${var.region}/subnetworks/${var.subnet_name}"
 
   # Pod addresses come from the 100.64/10-based secondary range created in 10-network.
-  # Service addresses use the GKE-managed 34.118.224.0/20 range and therefore do not
-  # consume an additional subnet secondary range.
+  # No Service secondary range is specified. Autopilot 1.27+ therefore uses the
+  # GKE-managed 34.118.224.0/20 Service range by default.
   ip_allocation_policy {
     cluster_secondary_range_name = var.pod_range_name
-    services_ipv4_cidr_block     = var.service_cidr
   }
 
   private_cluster_config {
