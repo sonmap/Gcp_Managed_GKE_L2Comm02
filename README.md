@@ -41,15 +41,17 @@ Cloud Scheduler
 
 ---
 
-## 3. Network 설계 - IP 고갈 대응형
+## 3. Network 설계 - 최종 CIDR
 
-기존 환경은 **실제 서비스에 172.x 대역을 사용**하고 있으며, 172 대역은 여유가 부족합니다. 10.x는 기존 서버대역과 충돌 가능성이 있으므로 GKE에서 최소한으로 사용하고, Pod IP는 `100.64.0.0/10` 계열을 사용합니다.
+기존 환경은 실제 서비스에 172.x 대역을 사용하고 있으며 IP 여유가 부족합니다.
+10.x는 기존 서버대역과 충돌 가능성이 있으므로 Node/Control Plane에 최소 사용하고,
+Pod IP는 `100.64.0.0/21`을 사용합니다.
 
 | 구분 | Range | CIDR | 용도 | 설계 의도 |
 |---|---|---:|---|---|
 | Node Primary | Primary | `10.254.0.0/26` | GKE Node IP | 약 20 Node 환산 + 여유 고려, 10 대역 소비 최소화 |
-| Pod Secondary | `pods-prod-edp-l2comm-an3` | `100.64.0.0/18` | Pod IP | 172/10 고갈 회피, 확장성 확보 |
-| Service | GKE Managed | `34.118.224.0/20` | ClusterIP Service | 별도 Service Secondary Range 미사용 |
+| Pod Secondary | `pods-prod-edp-l2comm-an3` | `100.64.0.0/21` | Pod IP | 172/10 고갈 회피, 확장성 확보 |
+| Service | GKE Managed | 미설정 | ClusterIP Service | 별도 Service Secondary Range 미사용 |
 | Control Plane | Master CIDR | `10.254.5.0/28` | Private Control Plane | Autopilot용 Control Plane CIDR 1개 |
 
 ### 용량 가정
@@ -65,19 +67,19 @@ Same Shared VPC
 
 Pod 100.64.x.x
    -> VPC system route
-   -> GCP 내부 172.x 서비스
+   -> GCP 내부 172.x / 10.x 서비스
 
 On-Prem 172.x
 Pod 100.64.x.x
    -> Cloud Router / Interconnect
    -> On-Prem 172.x
-   <- Return Route for 100.64.0.0/18 필요
+   <- Return Route for 100.64.0.0/21 필요
 ```
 
 - 동일 VPC의 Subnet/Secondary Range 사이에는 별도 Static Route를 추가하지 않습니다.
 - Firewall / Hierarchical Firewall / Network Policy는 별도 허용 여부를 확인합니다.
-- 온프레미스 172 서비스와 통신할 경우 `100.64.0.0/18`의 BGP 광고 및 Return Route를 반드시 확인합니다.
-- `10.254.0.0/26`, `10.254.5.0/28`, `100.64.0.0/18`은 기존 사내/VPN/CGNAT 대역과 중복 여부를 구축 전에 확인합니다.
+- 온프레미스 172 서비스와 통신할 경우 `100.64.0.0/21`의 BGP 광고 및 Return Route를 확인합니다.
+- `10.254.0.0/26`, `10.254.5.0/28`, `100.64.0.0/21`은 기존 사내/VPN/CGNAT 대역과 중복 여부를 구축 전에 확인합니다.
 
 ---
 
@@ -110,7 +112,8 @@ Runtime 기본 권한:
 10-network
    -> Shared VPC 연결
    -> GKE Node Subnet 10.254.0.0/26
-   -> Pod Secondary 100.64.0.0/18
+   -> Pod Secondary 100.64.0.0/21
+   -> Service Secondary 생성 안 함
    -> Shared VPC IAM
 
 20-source-connection
@@ -119,7 +122,7 @@ Runtime 기본 권한:
 30-infra-manager
    -> Artifact Registry
    -> Service Accounts / IAM
-   -> GKE Autopilot
+   -> GKE Autopilot 신규 생성
    -> Cloud Build Trigger
    -> Workflow
 
@@ -127,6 +130,9 @@ Runtime 기본 권한:
    -> Scheduler 생성
    -> Workflow -> GKE Job 실행
 ```
+
+현재 GKE Autopilot Cluster는 강제 삭제된 상태를 기준으로 하며,
+`10-network`을 최종 CIDR로 맞춘 뒤 `30-infra-manager`에서 재생성합니다.
 
 ---
 
@@ -174,8 +180,8 @@ flowchart LR
 
     subgraph VPC[Shared VPC vpc-prod-edp-hub]
       N[Node\n10.254.0.0/26]
-      P[Pod\n100.64.0.0/18]
-      S[Service\n34.118.224.0/20]
+      P[Pod\n100.64.0.0/21]
+      S[Service\nGKE Managed / 미설정]
       CP[Control Plane\n10.254.5.0/28]
       LEGACY[Existing Service\n172.x]
     end
@@ -189,8 +195,8 @@ flowchart LR
 ## 8. 사전 확인 필수
 
 1. `10.254.0.0/26`이 기존 서버망과 중복되지 않는지 확인
-2. `100.64.0.0/18`이 사내 CGNAT/VPN/보안장비에서 사용 중인지 확인
-3. On-Prem 연동 시 `100.64.0.0/18` Return Route 확인
+2. `100.64.0.0/21`이 사내 CGNAT/VPN/보안장비에서 사용 중인지 확인
+3. On-Prem 연동 시 `100.64.0.0/21` Return Route 확인
 4. 기존 `github-l2comm` Connection에서 새 Repository 연결
 5. 30 단계 전에 `sa-l2comm-inframgr`의 Cloud Build Trigger 생성 권한 확인
 6. Artifact Registry Image Pull용 Node SA 권한 확인
