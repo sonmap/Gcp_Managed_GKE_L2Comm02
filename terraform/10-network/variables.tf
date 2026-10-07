@@ -36,15 +36,11 @@ variable "pod_range_name" {
 }
 
 # RFC6598 shared address space used for Pods to preserve scarce 172/10 space.
+# /21 provides 2,048 addresses while reducing the reserved address footprint
+# compared with the previous /18 proposal.
 variable "pod_cidr" {
   type    = string
-  default = "100.64.0.0/18"
-}
-
-# GKE-managed Service CIDR. This is not created as a subnet secondary range.
-variable "service_cidr" {
-  type    = string
-  default = "34.118.224.0/20"
+  default = "100.64.0.0/21"
 }
 
 variable "inframgr_service_account" {
