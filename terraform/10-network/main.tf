@@ -19,7 +19,6 @@ provider "google" {
   region  = var.region
 }
 
-# APIs required by Scheduler / GitHub Connection / Trigger.
 resource "google_project_service" "cloudscheduler" {
   provider           = google.edge
   project            = var.edge_project_id
@@ -43,7 +42,6 @@ data "google_project" "service_project" {
   project_id = var.edge_project_id
 }
 
-# Cloud Build 2nd-gen GitHub connection stores its OAuth token in Secret Manager.
 resource "google_project_iam_member" "cloudbuild_p4sa_secretmanager_admin" {
   provider = google.edge
   project  = var.edge_project_id
@@ -53,7 +51,6 @@ resource "google_project_iam_member" "cloudbuild_p4sa_secretmanager_admin" {
   depends_on = [google_project_service.secretmanager]
 }
 
-# Infrastructure Manager must be able to create/update Cloud Build triggers.
 resource "google_project_iam_member" "inframgr_cloudbuild_editor" {
   provider = google.edge
   project  = var.edge_project_id
@@ -61,18 +58,17 @@ resource "google_project_iam_member" "inframgr_cloudbuild_editor" {
   member   = "serviceAccount:${var.inframgr_service_account}"
 }
 
-# Attach Edge service project to Shared VPC host.
 resource "google_compute_shared_vpc_service_project" "edge" {
   host_project    = var.host_project_id
   service_project = var.edge_project_id
 }
 
-# GKE Node subnet.
-# Design principle:
-# - Existing 172.x is preserved for actual service networks.
-# - 10.x is consumed only for the relatively small Node primary range.
-# - Pod IP uses 100.64/10 space to reduce RFC1918 exhaustion.
-# - Kubernetes Service IP uses GKE managed 34.118.224.0/20 in 30-infra-manager.
+# GKE network design:
+# - Existing 172.x stays reserved for service networks.
+# - 10.x is consumed only by the small Node primary range.
+# - Pod IP uses 100.64.0.0/21.
+# - No Service secondary range is created here; Autopilot uses its managed
+#   Service range when 30-infra-manager recreates the cluster.
 resource "google_compute_subnetwork" "gke" {
   project                  = var.host_project_id
   name                     = var.subnet_name
@@ -133,8 +129,4 @@ output "node_cidr" {
 
 output "pod_cidr" {
   value = var.pod_cidr
-}
-
-output "service_cidr" {
-  value = var.service_cidr
 }
