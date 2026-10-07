@@ -7,9 +7,18 @@
 3. `20-source-connection`에서 `Gcp_Managed_GKE_L2Comm02` Repository 연결 완료
 4. 신규 CIDR 중복 검토 완료
 
-## 적용
+최종 Network 기준:
 
-기존 L2Comm PoC의 동일 Infrastructure Manager deployment를 업데이트하는 경우:
+```text
+Node Primary  : 10.254.0.0/26
+Pod Secondary : 100.64.0.0/21
+Service       : GKE Managed / 별도 CIDR 미설정
+Control Plane : 10.254.5.0/28
+```
+
+현재 GKE Autopilot Cluster는 강제 삭제된 상태이므로 30 단계에서 새 Cluster를 생성합니다.
+
+## 적용
 
 ```bash
 gcloud infra-manager deployments apply \
@@ -23,13 +32,13 @@ gcloud infra-manager deployments apply \
 ## 확인
 
 ```bash
-gcloud builds triggers list \
+gcloud container clusters describe gke-l2comm-batch-an3 \
   --project=gcp-prod-edp-edge-509423 \
   --region=asia-northeast3
 ```
 
 ```bash
-gcloud container clusters describe gke-l2comm-batch-an3 \
+gcloud builds triggers list \
   --project=gcp-prod-edp-edge-509423 \
   --region=asia-northeast3
 ```
@@ -40,6 +49,12 @@ gcloud workflows describe wf-l2comm-gke-job \
   --location=asia-northeast3
 ```
 
-## 중요
+Cluster 생성 후 확인 포인트:
 
-기존 Cluster가 `10.254.2.0/23` Pod range와 `10.254.4.0/24` Service secondary range를 사용 중이라면 L2Comm02의 Network 변경을 단순 In-place 수정으로 적용하지 않습니다. `docs/MIGRATION.md`를 먼저 확인합니다.
+```text
+Subnet        : subnet-prod-edp-l2comm-gke-an3
+Node Primary  : 10.254.0.0/26
+Pod Range     : pods-prod-edp-l2comm-an3 = 100.64.0.0/21
+Service Range : 별도 Subnet Secondary 없음
+Control Plane : 10.254.5.0/28
+```
