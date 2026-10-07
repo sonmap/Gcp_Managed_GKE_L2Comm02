@@ -43,12 +43,6 @@ variable "pod_range_name" {
   default = "pods-prod-edp-l2comm-an3"
 }
 
-# GKE managed Service CIDR. No subnet secondary range is created for Services.
-variable "service_cidr" {
-  type    = string
-  default = "34.118.224.0/20"
-}
-
 variable "control_plane_cidr" {
   type    = string
   default = "10.254.5.0/28"
