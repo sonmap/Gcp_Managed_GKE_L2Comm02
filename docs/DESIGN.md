@@ -9,12 +9,12 @@ Organization / Existing Environment
 |   +-- VPC: vpc-prod-edp-hub
 |   +-- Existing Service Networks: 172.x
 |   +-- GKE Node Subnet: 10.254.0.0/26
-|       +-- Pod Secondary: 100.64.0.0/18
+|       +-- Pod Secondary: 100.64.0.0/21
 |
 +-- Edge Project: gcp-prod-edp-edge-509423
 |   +-- GKE Autopilot: gke-l2comm-batch-an3
 |   |   +-- Control Plane: 10.254.5.0/28
-|   |   +-- Service CIDR: GKE Managed 34.118.224.0/20
+|   |   +-- Service: GKE Managed / 별도 CIDR 미설정
 |   |   +-- Namespace: l2comm-batch
 |   |   +-- KSA: ksa-l2comm-batch
 |   +-- Artifact Registry: ar-l2comm-python
@@ -49,13 +49,13 @@ Autopilot에서는 실제 Node shape/count를 직접 고정하지 않으며 위 
 
 ## IP Plan
 
-| 구분 | CIDR | 설명 |
-|---|---|---|
-| Existing Service | `172.x` | 실제 서비스용, 최대한 보존 |
-| Node Primary | `10.254.0.0/26` | 약 20 Node 환산 + 여유 |
-| Pod Secondary | `100.64.0.0/18` | RFC1918 고갈 완화용 Pod 전용 |
-| Service | `34.118.224.0/20` | GKE-managed Service range |
-| Control Plane | `10.254.5.0/28` | Private Control Plane |
+| 구분 | Range | CIDR | 설명 |
+|---|---|---|---|
+| Existing Service | - | `172.x` | 실제 서비스용, 최대한 보존 |
+| Node Primary | Primary | `10.254.0.0/26` | 약 20 Node 환산 + 여유 |
+| Pod Secondary | `pods-prod-edp-l2comm-an3` | `100.64.0.0/21` | Pod 전용, 172/10 고갈 완화 |
+| Service | GKE Managed | 미설정 | 별도 Subnet Secondary Range 미사용 |
+| Control Plane | Master CIDR | `10.254.5.0/28` | Private Control Plane |
 
 ## Routing
 
@@ -64,7 +64,7 @@ Autopilot에서는 실제 Node shape/count를 직접 고정하지 않으며 위 
 ```text
 Pod 100.64.x.x
   -> GCP VPC system routing
-  -> 172.x GCP service
+  -> 172.x / 10.x GCP service
 ```
 
 별도 Static Route는 추가하지 않습니다. Firewall/HFP/Network Policy는 별도 확인합니다.
@@ -72,12 +72,12 @@ Pod 100.64.x.x
 ### On-Prem 172.x
 
 ```text
-Pod 100.64.0.0/18
+Pod 100.64.0.0/21
   -> Cloud Router / Interconnect
   -> On-Prem 172.x
 
 On-Prem 172.x
-  -> Return Route 100.64.0.0/18
+  -> Return Route 100.64.0.0/21
   -> GCP
 ```
 
