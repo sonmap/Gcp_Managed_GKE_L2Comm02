@@ -25,7 +25,6 @@ PV_NAME="${PV_NAME:-l2comm-git-nfs-pv}"
 PVC_NAME="${PVC_NAME:-l2comm-git-nfs-pvc}"
 POD_MOUNT_PATH="${POD_MOUNT_PATH:-/mnt/l2comm}"
 PV_SIZE="${PV_SIZE:-20Gi}"
-POD_RETAIN_SECONDS="${POD_RETAIN_SECONDS:-300}"
 
 usage() {
   cat <<'USAGE'
@@ -48,7 +47,6 @@ Environment:
   PVC_NAME       default: l2comm-git-nfs-pvc
   POD_MOUNT_PATH default: /mnt/l2comm
   PV_SIZE        default: 20Gi
-  POD_RETAIN_SECONDS default: 300 (5 minutes); 0 = delete immediately
 USAGE
 }
 
@@ -190,10 +188,9 @@ echo "PV/PVC        : $PV_NAME / $PVC_NAME"
 echo "POD_MOUNT     : $POD_MOUNT_PATH"
 echo "COMMAND       : $SHELL_COMMAND"
 echo "MANIFEST_DIR  : $TMP_DIR"
-echo "POD_RETAIN    : ${POD_RETAIN_SECONDS}s"
 echo "============================================================"
 
-if [[ "${DRY_RUN:-0}" == "1" ]]; then
+if [[ "${DRY_RUN:-1}" == "1" ]]; then
   echo
   echo "[DRY_RUN] pv.yaml"
   cat "$PV_YAML"
@@ -236,13 +233,6 @@ if [[ $WAIT_RC -ne 0 ]]; then
   kubectl -n "$NAMESPACE" get pod "$POD_NAME" -o wide || true
   kubectl -n "$NAMESPACE" describe pod "$POD_NAME" || true
   exit "$WAIT_RC"
-fi
-
-echo "[INFO] Pod completed successfully."
-echo "[INFO] Keeping Pod for ${POD_RETAIN_SECONDS} seconds before deletion."
-
-if [[ "$POD_RETAIN_SECONDS" != "0" ]]; then
-  sleep "$POD_RETAIN_SECONDS"
 fi
 
 kubectl -n "$NAMESPACE" delete pod "$POD_NAME" --ignore-not-found=true
