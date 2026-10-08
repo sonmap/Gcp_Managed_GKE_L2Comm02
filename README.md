@@ -206,3 +206,51 @@ Cloud Build SUCCESS
 -> BigQuery pjt-c-admin.dlk_sample.gcp_region_inventory
 -> 43 rows 적재
 ```
+
+
+---
+
+## 9. VM `run-gke.sh` / NFS PV PoC
+
+추가된 Git 구조:
+
+```text
+ssw/dlk/
+├─ run-gke.sh
+├─ client_gke
+├─ install-vm.sh
+├─ setup-nfs-server.sh
+└─ README.md
+
+mnt/
+├─ README.md
+└─ python/
+   ├─ bq_sample.py
+   └─ requirements.txt
+```
+
+VM에서 Git pull 후:
+
+```bash
+cd ~/Gcp_Managed_GKE_L2Comm02
+git pull
+
+bash ssw/dlk/install-vm.sh
+sudo bash /ssw/dlk/setup-nfs-server.sh
+```
+
+PoC 흐름:
+
+```text
+Git mnt/
+   ↓ VM NFSv4 export
+GKE PV/PVC
+   ↓
+Pod /mnt/l2comm
+   ↓
+python/bq_sample.py
+   ↓
+BigQuery sample query
+```
+
+상세 실행 방법은 `ssw/dlk/README.md`를 참고합니다.
