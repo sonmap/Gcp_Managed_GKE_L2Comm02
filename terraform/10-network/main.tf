@@ -65,8 +65,8 @@ resource "google_compute_shared_vpc_service_project" "edge" {
 
 # GKE network design:
 # - Existing 172.x stays reserved for service networks.
-# - 10.x is consumed only by the small Node primary range.
-# - Pod IP uses 100.64.0.0/21.
+# - Node Primary uses dedicated 10.252.1.0/24.
+# - Pod IP uses RFC6598 100.64.128.0/19.
 # - No Service secondary range is created here; Autopilot uses its managed
 #   Service range when 30-infra-manager recreates the cluster.
 resource "google_compute_subnetwork" "gke" {
