@@ -10,13 +10,17 @@
 최종 Network 기준:
 
 ```text
-Node Primary  : 10.254.0.0/26
-Pod Secondary : 100.64.0.0/21
+Node Primary  : 10.252.1.0/24
+Pod Secondary : 100.64.128.0/19
 Service       : GKE Managed / 별도 CIDR 미설정
 Control Plane : 10.254.5.0/28
 ```
 
-현재 GKE Autopilot Cluster는 강제 삭제된 상태이므로 30 단계에서 새 Cluster를 생성합니다.
+Control Plane은 요청된 `10.x.x.x/28` 조건을 만족하는 기존
+`10.254.5.0/28` 값을 유지합니다.
+
+기존 GKE Autopilot과 기존 `l2comm-platform` Deployment 삭제 후,
+30 단계에서 새 Cluster를 생성합니다.
 
 ## 적용
 
@@ -53,8 +57,8 @@ Cluster 생성 후 확인 포인트:
 
 ```text
 Subnet        : subnet-prod-edp-l2comm-gke-an3
-Node Primary  : 10.254.0.0/26
-Pod Range     : pods-prod-edp-l2comm-an3 = 100.64.0.0/21
+Node Primary  : 10.252.1.0/24
+Pod Range     : pods-prod-edp-l2comm-an3 = 100.64.128.0/19
 Service Range : 별도 Subnet Secondary 없음
 Control Plane : 10.254.5.0/28
 ```
