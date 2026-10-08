@@ -43,6 +43,7 @@ variable "pod_range_name" {
   default = "pods-prod-edp-l2comm-an3"
 }
 
+# Private Control Plane remains on a dedicated 10.x /28 range.
 variable "control_plane_cidr" {
   type    = string
   default = "10.254.5.0/28"
