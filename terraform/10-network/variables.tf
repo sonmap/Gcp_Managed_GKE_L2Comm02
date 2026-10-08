@@ -23,11 +23,12 @@ variable "subnet_name" {
   default = "subnet-prod-edp-l2comm-gke-an3"
 }
 
-# /26 gives 64 addresses (60 usable in a GCP subnet), enough for the
-# ~20-node capacity-planning equivalent with operational headroom.
+# Final Node primary range.
+# /24 provides 256 addresses and leaves comfortable headroom for
+# Autopilot-managed nodes and future workload growth.
 variable "node_cidr" {
   type    = string
-  default = "10.254.0.0/26"
+  default = "10.252.1.0/24"
 }
 
 variable "pod_range_name" {
@@ -35,12 +36,11 @@ variable "pod_range_name" {
   default = "pods-prod-edp-l2comm-an3"
 }
 
-# RFC6598 shared address space used for Pods to preserve scarce 172/10 space.
-# /21 provides 2,048 addresses while reducing the reserved address footprint
-# compared with the previous /18 proposal.
+# RFC6598 shared address space used for Pods to preserve scarce RFC1918 space.
+# /19 provides 8,192 addresses.
 variable "pod_cidr" {
   type    = string
-  default = "100.64.0.0/21"
+  default = "100.64.128.0/19"
 }
 
 variable "inframgr_service_account" {
