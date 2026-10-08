@@ -7,9 +7,9 @@ Organization / Existing Environment
 |
 +-- Shared VPC Host: gcp-prod-edp-hub-vpchost
 |   +-- VPC: vpc-prod-edp-hub
-|   +-- Existing Service Networks: 172.x
-|   +-- GKE Node Subnet: 10.254.0.0/26
-|       +-- Pod Secondary: 100.64.0.0/21
+|   +-- Existing Service Networks: 172.x / 10.x
+|   +-- GKE Node Subnet: 10.252.1.0/24
+|       +-- Pod Secondary: 100.64.128.0/19
 |
 +-- Edge Project: gcp-prod-edp-edge-509423
 |   +-- GKE Autopilot: gke-l2comm-batch-an3
@@ -51,33 +51,35 @@ Autopilot에서는 실제 Node shape/count를 직접 고정하지 않으며 위 
 
 | 구분 | Range | CIDR | 설명 |
 |---|---|---|---|
-| Existing Service | - | `172.x` | 실제 서비스용, 최대한 보존 |
-| Node Primary | Primary | `10.254.0.0/26` | 약 20 Node 환산 + 여유 |
-| Pod Secondary | `pods-prod-edp-l2comm-an3` | `100.64.0.0/21` | Pod 전용, 172/10 고갈 완화 |
+| Existing Service | - | `172.x / 10.x` | 기존 서비스/서버 네트워크 |
+| Node Primary | Primary | `10.252.1.0/24` | GKE Node 전용 |
+| Pod Secondary | `pods-prod-edp-l2comm-an3` | `100.64.128.0/19` | Pod 전용, RFC1918 고갈 완화 |
 | Service | GKE Managed | 미설정 | 별도 Subnet Secondary Range 미사용 |
 | Control Plane | Master CIDR | `10.254.5.0/28` | Private Control Plane |
+
+Control Plane은 `10.x.x.x/28` 조건을 만족하는 기존 `10.254.5.0/28`을 유지합니다.
 
 ## Routing
 
 ### GCP 동일 Shared VPC
 
 ```text
-Pod 100.64.x.x
+Pod 100.64.128.x
   -> GCP VPC system routing
   -> 172.x / 10.x GCP service
 ```
 
 별도 Static Route는 추가하지 않습니다. Firewall/HFP/Network Policy는 별도 확인합니다.
 
-### On-Prem 172.x
+### On-Prem 연동
 
 ```text
-Pod 100.64.0.0/21
+Pod 100.64.128.0/19
   -> Cloud Router / Interconnect
-  -> On-Prem 172.x
+  -> On-Prem
 
-On-Prem 172.x
-  -> Return Route 100.64.0.0/21
+On-Prem
+  -> Return Route 100.64.128.0/19
   -> GCP
 ```
 
