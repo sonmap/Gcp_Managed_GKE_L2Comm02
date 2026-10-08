@@ -64,4 +64,4 @@ echo "  findmnt $NFS_ROOT"
 echo "  exportfs -v"
 echo "  ss -lntp | grep 2049"
 echo
-echo "GKE Pod CIDR 100.64.128.0/19 must be allowed to TCP/2049 on this VM."
+echo "GKE Node Primary CIDR 10.252.1.0/24 must be allowed to TCP/2049 on this VM."
