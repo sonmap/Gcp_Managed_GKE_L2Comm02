@@ -23,7 +23,7 @@ NFS_SERVER="${NFS_SERVER:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
 NFS_PATH="${NFS_PATH:-/}"
 PV_NAME="${PV_NAME:-l2comm-git-nfs-pv}"
 PVC_NAME="${PVC_NAME:-l2comm-git-nfs-pvc}"
-POD_MOUNT_PATH="${POD_MOUNT_PATH:-/mnt/l2comm}"
+POD_MOUNT_PATH="${POD_MOUNT_PATH:-/home}"
 PV_SIZE="${PV_SIZE:-20Gi}"
 
 usage() {
@@ -35,7 +35,7 @@ Usage:
     --gpu 0 \
     --cpu 4 \
     --mem-gb 16 \
-    --shell-command "cd /mnt/l2comm/python && python bq_sample.py" \
+    --shell-command "cd /home/python && python bq_sample.py" \
     [--namespace l2comm-batch] \
     [--nfs-server 172.x.x.x] \
     [--nfs-path /]
@@ -45,7 +45,7 @@ Environment:
   DRY_RUN=1      create/print manifests only; do not kubectl apply
   PV_NAME        default: l2comm-git-nfs-pv
   PVC_NAME       default: l2comm-git-nfs-pvc
-  POD_MOUNT_PATH default: /mnt/l2comm
+  POD_MOUNT_PATH default: /home
   PV_SIZE        default: 20Gi
 USAGE
 }
