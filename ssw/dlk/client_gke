@@ -6,7 +6,7 @@ set -euo pipefail
 # - Creates/reuses a static NFS PV/PVC
 # - Creates a batch Pod and mounts the Git-managed NFS share read-only
 
-export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config_new-autopilot}"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/client_common"
 
 PROGRAM_ID=""
 DOCKER_IMAGE=""
@@ -14,16 +14,16 @@ GPU="0"
 CPU="1"
 MEM_GB="4"
 SHELL_COMMAND=""
-NAMESPACE="l2comm-batch"
+NAMESPACE="${NAMESPACE:-l2comm-batch}"
 KSA_NAME="ksa-l2comm-batch"
 RUNTIME_GSA="sa-l2comm-runtime@gcp-prod-edp-edge-509423.iam.gserviceaccount.com"
 
 # By default the current VM is used as the PoC NFS server.
 NFS_SERVER="${NFS_SERVER:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
-NFS_PATH="${NFS_PATH:-/}"
-PV_NAME="${PV_NAME:-l2comm-git-nfs-pv}"
-PVC_NAME="${PVC_NAME:-l2comm-git-nfs-pvc}"
-POD_MOUNT_PATH="${POD_MOUNT_PATH:-/home}"
+NFS_PATH="${NFS_PATH:-/batch_gke/l2/rsvp}"
+PV_NAME="${PV_NAME:-l2comm-rsvp-pv}"
+PVC_NAME="${PVC_NAME:-l2comm-rsvp-pvc}"
+POD_MOUNT_PATH="${POD_MOUNT_PATH:-/home/jupyter}"
 PV_SIZE="${PV_SIZE:-20Gi}"
 
 usage() {
@@ -35,7 +35,7 @@ Usage:
     --gpu 0 \
     --cpu 4 \
     --mem-gb 16 \
-    --shell-command "cd /home/python && python bq_sample.py" \
+    --shell-command "cd /home/jupyter/GP_L2RSVP_001_1/python && python bq_auth_smoke.py" \
     [--namespace l2comm-batch] \
     [--nfs-server 172.x.x.x] \
     [--nfs-path /]
@@ -43,9 +43,9 @@ Usage:
 Environment:
   KUBECONFIG     default: $HOME/.kube/config_new-autopilot
   DRY_RUN=1      create/print manifests only; do not kubectl apply
-  PV_NAME        default: l2comm-git-nfs-pv
-  PVC_NAME       default: l2comm-git-nfs-pvc
-  POD_MOUNT_PATH default: /home
+  PV_NAME        default: l2comm-rsvp-pv
+  PVC_NAME       default: l2comm-rsvp-pvc
+  POD_MOUNT_PATH default: /home/jupyter
   PV_SIZE        default: 20Gi
 USAGE
 }
@@ -136,6 +136,9 @@ spec:
       args:
         - |
           set -e
+          if [[ "${SA_KEY_CHECK:-1}" == "1" ]]; then
+            test -r "${SA_KEY_PATH:-/home/jupyter/.oefj}" || { echo "Missing or unreadable SA key"; exit 2; }
+          fi
           ${SHELL_COMMAND}
       resources:
         requests:
@@ -207,7 +210,10 @@ kubectl get namespace "$NAMESPACE" >/dev/null 2>&1 || kubectl create namespace "
 
 kubectl -n "$NAMESPACE" get serviceaccount "$KSA_NAME" >/dev/null 2>&1 ||   kubectl -n "$NAMESPACE" create serviceaccount "$KSA_NAME"
 
-kubectl -n "$NAMESPACE" annotate serviceaccount "$KSA_NAME"   iam.gke.io/gcp-service-account="$RUNTIME_GSA"   --overwrite
+if [[ "${USE_WORKLOAD_IDENTITY:-0}" == "1" ]]; then
+  kubectl -n "$NAMESPACE" annotate serviceaccount "$KSA_NAME" \
+    iam.gke.io/gcp-service-account="$RUNTIME_GSA" --overwrite
+fi
 
 kubectl apply -f "$PV_YAML"
 kubectl apply -f "$PVC_YAML"
