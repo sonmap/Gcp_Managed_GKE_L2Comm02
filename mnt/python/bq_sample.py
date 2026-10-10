@@ -2,6 +2,7 @@
 import os
 
 from google.cloud import bigquery
+from google.oauth2 import service_account
 
 JOB_PROJECT = os.getenv("BQ_JOB_PROJECT", "gcp-prod-edp-edge-509423")
 TABLE = os.getenv(
@@ -9,10 +10,18 @@ TABLE = os.getenv(
     "pjt-c-admin.dlk_sample.gcp_region_inventory",
 )
 LIMIT = int(os.getenv("BQ_SAMPLE_LIMIT", "10"))
+SA_KEY_PATH = os.getenv("SA_KEY_PATH", "/home/jupyter/.oefj")
 
 
 def main() -> None:
-    client = bigquery.Client(project=JOB_PROJECT)
+    if not os.path.isfile(SA_KEY_PATH):
+        raise FileNotFoundError(f"Service Account Key not found: {SA_KEY_PATH}")
+    credentials = service_account.Credentials.from_service_account_file(
+        SA_KEY_PATH, scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+    print(f"[INFO] Credential source     : {SA_KEY_PATH}")
+    print(f"[INFO] Service account       : {credentials.service_account_email}")
+    client = bigquery.Client(project=JOB_PROJECT, credentials=credentials)
 
     sql = f"""
     SELECT
