@@ -9,7 +9,7 @@ set -euo pipefail
 # $5  VM_GPU
 # $6  VM_CPU
 # $7  VM_MEM
-# $8  WORKING_DIRECTORY  (path inside the Pod; normally /mnt/l2comm/...)
+# $8  WORKING_DIRECTORY  (path inside the Pod; normally /home/...)
 # $9  PROGRAM_PATH       (for example: python)
 # $10... PROGRAM_PARAM
 
@@ -24,7 +24,7 @@ Example:
   /ssw/dlk/run-gke.sh \
     20261008 20261008 20261008 180000 \
     0 4 16 \
-    /mnt/l2comm/python \
+    /home/python \
     python bq_sample.py
 USAGE
   exit 1
