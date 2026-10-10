@@ -1,2 +1,5 @@
 mnt/jupyter/.oefj
 mnt/jupyter/*.json
+**/.oefj
+**/.oef
+mnt/batch_gke/l2/rsvp/*.json
